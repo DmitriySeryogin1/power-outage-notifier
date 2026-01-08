@@ -1,7 +1,11 @@
 import fetch from 'node-fetch';
 import { writeFile, readFile } from 'fs/promises';
+import http from 'http';
 
 async function main() {
+    const server = http.createServer();
+    server.listen(process.env.PORT);
+
     try {
         console.log('Checking for power outages updates');
 
