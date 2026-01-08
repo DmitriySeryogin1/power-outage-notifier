@@ -91,6 +91,6 @@ main();
 
 setInterval(callService, 10 * 60 * 1000);
 
-setInterval(main, 30 * 60 * 1000);
+setInterval(main, 5 * 60 * 1000);
 
 
