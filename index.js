@@ -3,6 +3,8 @@ import { writeFile, readFile } from 'fs/promises';
 
 async function main() {
     try {
+        console.log('Checking for power outages updates');
+
         const response = await fetch('https://www.dtek-kem.com.ua/ua/ajax', {
             method: 'POST',
             headers: {
@@ -44,7 +46,7 @@ async function main() {
         const message = `${powerOutagePeriod.start_date} - ${powerOutagePeriod.end_date}`;
 
         try {
-            const json = await readFile(filename, 'utf8');
+            const json = await readFile(`./${filename}`, 'utf8');
             const parsed = JSON.parse(json);
 
             if (parsed.start_date !== homeData.start_date || parsed.end_date !== homeData.end_date) {
@@ -57,8 +59,14 @@ async function main() {
                     console.error(e);
                 }
             }
+            else {
+                console.log("No updates detected")
+            }
         }
-        catch {
+        catch (e) {
+            console.error(e);
+
+            console.log("Creating schedule.json file");
             await writeFile(`./${filename}`, JSON.stringify(powerOutagePeriod));
 
             try {
