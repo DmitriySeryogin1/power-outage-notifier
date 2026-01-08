@@ -83,6 +83,14 @@ const sendNotification = async (message) => {
     console.log(`Sent notification on ${new Date().toISOString()}`)
 }
 
+const callService = () => {
+    fetch("https://power-outage-notifier-976l.onrender.com");
+}
+
 main();
 
+setInterval(callService, 10 * 60 * 1000);
+
 setInterval(main, 30 * 60 * 1000);
+
+
