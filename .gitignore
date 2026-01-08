@@ -1,3 +1,4 @@
 node_modules
 schedule.json
 .idea
+.env

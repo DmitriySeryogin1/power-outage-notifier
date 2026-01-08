@@ -74,7 +74,7 @@ async function main() {
 }
 
 const sendNotification = async (message) => {
-    await fetch(`https://api.telegram.org/bot8065127978:AAGaWn3iGBjf44vURcVZQ8iBbL8SZ-KUGR0/sendMessage`, {
+    await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: "332433737", text: message })
