@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { writeFile, readFile } from 'fs/promises';
 
 async function main() {
     try {
@@ -32,12 +33,54 @@ async function main() {
                 'data[2][value]': '08.01.2026 16:24'
             })
         });
-        const data = await response.json(); // или text() если нужно raw
 
-        console.log(data)
+        const {data} = await response.json();
+        const filename = "schedule.json";
+        const homeData = data['23/15'];
+        const powerOutagePeriod = {
+            start_date: homeData.start_date,
+            end_date: homeData.end_date
+        }
+        const message = `${powerOutagePeriod.start_date} - ${powerOutagePeriod.end_date}`;
+
+        try {
+            const json = await readFile(filename, 'utf8');
+            const parsed = JSON.parse(json);
+
+            if (parsed.start_date !== homeData.start_date || parsed.end_date !== homeData.end_date) {
+                await writeFile(`./${filename}`, JSON.stringify(powerOutagePeriod));
+
+                try {
+                    await sendNotification(message);
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+        catch {
+            await writeFile(`./${filename}`, JSON.stringify(powerOutagePeriod));
+
+            try {
+                await sendNotification(message);
+            }
+            catch (e) {
+                console.error(e);
+            }
+        }
     } catch (err) {
         console.error('Error:', err);
     }
 }
 
+const sendNotification = async (message) => {
+    await fetch(`https://api.telegram.org/bot8065127978:AAGaWn3iGBjf44vURcVZQ8iBbL8SZ-KUGR0/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: "332433737", text: message })
+    });
+}
+
 main();
+
+setInterval(main, 30 * 60 * 1000);
