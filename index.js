@@ -79,6 +79,8 @@ const sendNotification = async (message) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: "332433737", text: message })
     });
+
+    console.log(`Sent notification on ${new Date().toISOString()}`)
 }
 
 main();
