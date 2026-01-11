@@ -38,7 +38,6 @@ async function getCurrentSchedule() {
 
         console.log('Loading page...');
         await page.goto(URL, {waitUntil: 'networkidle2', timeout: 45000});
-
         // Wait for the critical data object to appear
         console.log('Waiting for DisconSchedule...');
 
@@ -51,11 +50,11 @@ async function getCurrentSchedule() {
         );
 
         const rawData = await page.evaluate((group) => {
-            if (!window.DisconSchedule?.fact?.data) {
+            if (!DisconSchedule?.fact?.data) {
                 return null;
             }
 
-            return window.DisconSchedule.fact.data[group] || null;
+            return DisconSchedule.fact.data[group] || null;
         }, GROUP);
 
         if (!rawData) {
