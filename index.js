@@ -1,200 +1,228 @@
-import fetch from 'node-fetch';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import http from 'http';
 import 'dotenv/config';
-import {readFile, writeFile} from 'fs/promises'
+import {readFile, writeFile} from 'fs/promises';
 
-const server = http.createServer();
+puppeteer.use(StealthPlugin());
+
+const URL = 'https://www.dtek-kem.com.ua/ua/shutdowns';
+const GROUP = 'GPV6.2'; // ← your group here
+
+const server = http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Monitoring bot is alive');
+});
 server.listen(process.env.PORT);
 
-async function main() {
+async function getCurrentSchedule() {
+    const browser = await puppeteer.launch({
+        headless: 'new',
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process',
+            '--no-zygote',
+        ],
+    });
+
     try {
-        console.log('Checking for power outages updates');
+        const page = await browser.newPage();
 
-        const response = await fetch("https://www.dtek-kem.com.ua/ua/shutdowns", {
-            "headers": {
-                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                "accept-language": "en-US,en;q=0.9,ru;q=0.8,uk;q=0.7",
-                "cache-control": "max-age=0",
-                "priority": "u=0, i",
-                "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": "\"macOS\"",
-                "sec-fetch-dest": "document",
-                "sec-fetch-mode": "navigate",
-                "sec-fetch-site": "same-origin",
-                "sec-fetch-user": "?1",
-                "upgrade-insecure-requests": "1",
-                "cookie": "Domain=dtek-kem.com.ua; _language=1f011804d107a9f0f6fa36417ed49140e5bc2106c740e65666f3a94e857201cca%3A2%3A%7Bi%3A0%3Bs%3A9%3A%22_language%22%3Bi%3A1%3Bs%3A2%3A%22uk%22%3B%7D; _hjSessionUser_5026684=eyJpZCI6IjU1N2ZlMjc0LTZlODktNWIyMS04NjFlLThhMDEzNDNkZTkzOCIsImNyZWF0ZWQiOjE3NjY5MDQ0NjI3MzEsImV4aXN0aW5nIjp0cnVlfQ==; _csrf-dtek-kem=d54bb3b6f857ed1df34d5c45ae13758da4b3842b8d20ad9c9482e78c665be0f7a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-dtek-kem%22%3Bi%3A1%3Bs%3A32%3A%22leIVLa3Egt5pbjcxWdFBoz8b78JgKDqR%22%3B%7D; _gid=GA1.3.1659978059.1768038404; Domain=dtek-kem.com.ua; visid_incap_2224657=Ya6n+aS6SO+z8QHfs3enc4vSUGkAAAAAQkIPAAAAAACAB6PBAbAkS+bzHG8ys7thQz9oOiJ3q5aR; dtek-kem=qb6jrp68g0vvnr5fu0g2uipu71; incap_ses_687_2224657=yKLkQBk9pHRWXvJnTreICVarYmkAAAAARCGGpquJb4Ed7COkx/XtNA==; _hjSession_5026684=eyJpZCI6ImU2OTEwZjkwLWY0MjctNGMwOC05MDBmLTFmMDY5NDRlMWJkMSIsImMiOjE3NjgwNzQ2MTM4MDksInMiOjAsInIiOjAsInNiIjowLCJzciI6MCwic2UiOjAsImZzIjowLCJzcCI6MH0=; _ga_DLFSTRRPM2=GS2.1.s1768074611$o8$g1$t1768074760$j58$l0$h0; _ga=GA1.3.1760325505.1766904461; incap_wrt_373=B69iaQAAAADRUl4DGgAI9QIQjOCHiJACGLPgissGIAIogtmKywYwAV18CF0DC1IBheujX2eZutk=",
-                "Referer": "https://www.dtek-kem.com.ua/ua/shutdowns"
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+            '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+        );
+
+        console.log('Loading page...');
+        await page.goto(URL, {waitUntil: 'networkidle2', timeout: 45000});
+
+        // Wait for the critical data object to appear
+        console.log('Waiting for DisconSchedule...');
+
+        await page.waitForFunction(
+            (varName) => {
+                return typeof window[varName] === 'object' && window[varName] !== null;
             },
-            "body": null,
-            "method": "GET"
-        });
+            {timeout: 30000},
+            'DisconSchedule'
+        );
 
-        const html = await response.text();
-
-        const startStr = 'DisconSchedule.fact = ';
-
-        const start = html.indexOf(startStr) + startStr.length;
-        const end = html.indexOf(",\"update\"", start);
-
-        const result = html.substring(start, end).trim() + '}';
-
-        const parsed = JSON.parse(result);
-
-        let message = '';
-
-        const currentSchedule = {};
-        let storedSchedule = null;
-
-        try {
-            const file = await readFile('schedule.json', 'utf-8');
-            storedSchedule = JSON.parse(file);
-        } catch {
-
-        }
-
-        Object.keys(parsed.data).forEach(((dateTimestamp, i) => {
-            currentSchedule[dateTimestamp] = '';
-
-            const date = new Date(Number(dateTimestamp) * 1000);
-
-            const uaDate = new Intl.DateTimeFormat('uk-UA', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            }).format(date);
-
-            if (i > 0) {
-                message += '\n\n';
+        const rawData = await page.evaluate((group) => {
+            if (!window.DisconSchedule?.fact?.data) {
+                return null;
             }
 
-            message += uaDate;
+            return window.DisconSchedule.fact.data[group] || null;
+        }, GROUP);
 
-            const myGroupShutdowns = parsed.data[dateTimestamp]["GPV6.2"];
+        if (!rawData) {
+            throw new Error(`Group ${GROUP} not found in DisconSchedule.fact.data`);
+        }
 
-            let assigningNewPeriod = false;
-            let isStartOfPeriodInitialized = false;
-            let currentPeriod = '';
+        return rawData; // { "1735689600": { "0": "yes", "1": "no", ... }, ... }
+    } finally {
+        await browser.close();
+    }
+}
 
-            const hours = Object.keys(myGroupShutdowns);
+function formatScheduleToMessage(scheduleData) {
+    let message = '';
+    const currentSchedule = {}; // for comparison later
 
-            hours.forEach((hour, i) => {
-                currentSchedule[dateTimestamp] = [];
+    Object.entries(scheduleData).forEach(([timestampStr, hoursData], dateIndex) => {
+        const timestamp = Number(timestampStr);
+        const date = new Date(timestamp * 1000);
 
-                if (myGroupShutdowns[hour] === "no" || myGroupShutdowns[hour] === "second" || myGroupShutdowns[hour] === "first") {
-                    if (!assigningNewPeriod) {
-                        assigningNewPeriod = true;
-                        message += '\n';
+        const uaDate = new Intl.DateTimeFormat('uk-UA', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        }).format(date);
+
+        if (dateIndex > 0) message += '\n\n';
+        message += uaDate;
+
+        currentSchedule[timestampStr] = [];
+
+        let assigningNewPeriod = false;
+        let currentPeriod = '';
+        let isStartOfPeriodInitialized = false;
+
+        const hours = Object.keys(hoursData)
+            .map(Number)
+            .sort((a, b) => a - b);
+
+        for (let i = 0; i < hours.length; i++) {
+            const hour = hours[i];
+            const status = hoursData[hour];
+
+            if (status === 'no' || status === 'first' || status === 'second') {
+                if (!assigningNewPeriod) {
+                    assigningNewPeriod = true;
+                    message += '\n';
+                }
+
+                if (!isStartOfPeriodInitialized) {
+                    isStartOfPeriodInitialized = true;
+
+                    let startTime;
+                    if (status === 'second' || status === 'first') {
+                        startTime = `${hour - 1}:30`;
+                    } else {
+                        startTime = `${hour}`;
                     }
 
-                    if (!isStartOfPeriodInitialized) {
-                        isStartOfPeriodInitialized = true;
+                    currentPeriod = startTime + '-';
+                    message += startTime + '-';
+                }
 
-                        if (myGroupShutdowns[hour] === "second") {
-                            currentPeriod = `${hour - 1}:30-`;
-                            message += `${hour - 1}:30-`;
-                        } else if (myGroupShutdowns[hour] === "first") {
-                            currentPeriod = `${hour - 1}:30-`;
-                            message += `${hour - 1}:30-`;
-                        } else {
-                            currentPeriod = `${hour - 1}-`;
-                            message += `${hour - 1}-`;
-                        }
+                // Check if this is the end of period
+                const nextHour = hours[i + 1];
+                const isLast = i === hours.length - 1;
+                const nextIsOff = isLast || hoursData[nextHour] === 'yes';
 
-                        if (!hours[i + 1] || myGroupShutdowns[hours[i + 1]] === "yes") {
-                            if (myGroupShutdowns[hour] === "second") {
-                                message += `${hour - 1}:30`;
-                                currentPeriod += `${hour - 1}:30`;
-                            } else if (myGroupShutdowns[hour] === "first") {
-                                message += `${hour - 1}:30`;
-                                currentPeriod += `${hour - 1}:30`;
-                            } else {
-                                message += hour;
-                                currentPeriod += hour;
-                            }
-
-                            currentSchedule[dateTimestamp].push(currentPeriod);
-
-                            assigningNewPeriod = false;
-                            isStartOfPeriodInitialized = false;
-                            currentPeriod = '';
-                        }
-                    } else if (!hours[i + 1] || myGroupShutdowns[hours[i + 1]] === "yes") {
-                        if (myGroupShutdowns[hour] === "second") {
-                            message += `${hour - 1}:30`;
-                            currentPeriod += `${hour - 1}:30`;
-                        } else if (myGroupShutdowns[hour] === "first") {
-                            message += `${hour - 1}:30`;
-                            currentPeriod += `${hour - 1}:30`;
-                        } else {
-                            message += hour;
-                            currentPeriod += hour;
-                        }
-
-                        currentSchedule[dateTimestamp].push(currentPeriod);
-
-                        assigningNewPeriod = false;
-                        isStartOfPeriodInitialized = false;
-                        currentPeriod = '';
+                if (nextIsOff) {
+                    let endTime;
+                    if (status === 'second' || status === 'first') {
+                        endTime = `${hour - 1}:30`;
+                    } else {
+                        endTime = `${hour}`;
                     }
-                } else {
+
+                    message += endTime;
+                    currentPeriod += endTime;
+                    currentSchedule[timestampStr].push(currentPeriod);
+
+                    // reset
                     assigningNewPeriod = false;
                     isStartOfPeriodInitialized = false;
                     currentPeriod = '';
                 }
-            })
-        }));
-
-        if (!storedSchedule) {
-            await writeFile('schedule.json', JSON.stringify(currentSchedule));
-            await sendNotification(message);
-        } else {
-            let somethingChanged = false;
-
-            Object.keys(storedSchedule).forEach((dateTimestamp) => {
-                if (somethingChanged) {
-                    return;
-                }
-
-                storedSchedule[dateTimestamp].forEach(period => {
-                    if (somethingChanged) {
-                        return;
-                    }
-
-                    somethingChanged = !currentSchedule[dateTimestamp].includes(period);
-                })
-            });
-
-            if (somethingChanged) {
-                await sendNotification(message);
             } else {
-                console.log("No changes detected");
+                // light on → reset period
+                assigningNewPeriod = false;
+                isStartOfPeriodInitialized = false;
+                currentPeriod = '';
             }
         }
+    });
+
+    return {message, currentSchedule};
+}
+
+async function sendTelegramNotification(text) {
+    const token = process.env.BOT_TOKEN;
+    const chatId = '332433737';
+
+    if (!token) {
+        console.error('BOT_TOKEN not set in .env');
+        return;
+    }
+
+    try {
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                chat_id: chatId,
+                text,
+                parse_mode: 'HTML', // optional
+            }),
+        });
+
+        console.log(`Notification sent at ${new Date().toISOString()}`);
     } catch (err) {
-        console.error('Error:', err);
+        console.error('Telegram send failed:', err);
     }
 }
 
-const sendNotification = async (message) => {
-    await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({chat_id: "332433737", text: message})
+async function main() {
+    console.log('Checking power outages...');
+
+    try {
+        const scheduleData = await getCurrentSchedule();
+
+        const {message, currentSchedule} = formatScheduleToMessage(scheduleData);
+
+        let stored = null;
+        try {
+            const content = await readFile('schedule.json', 'utf-8');
+            stored = JSON.parse(content);
+        } catch {
+            // first run
+        }
+
+        let shouldNotify = !stored;
+
+        if (stored) {
+            // simple deep compare (can be improved)
+            shouldNotify = JSON.stringify(stored) !== JSON.stringify(currentSchedule);
+        }
+
+        if (shouldNotify) {
+            console.log('Schedule changed → sending notification');
+            await writeFile('schedule.json', JSON.stringify(currentSchedule, null, 2));
+            if (message.trim()) {
+                await sendTelegramNotification(message);
+            }
+        } else {
+            console.log('No changes in schedule');
+        }
+    } catch (err) {
+        console.error('Main error:', err);
+    }
+}
+
+// Keep alive on render.com / fly.io etc.
+const keepAlive = () => {
+    fetch('https://power-outage-notifier-976l.onrender.com').catch(() => {
     });
+};
 
-    console.log(`Sent notification on ${new Date().toISOString()}`)
-}
+main(); // first run
 
-const callService = () => {
-    fetch("https://power-outage-notifier-976l.onrender.com");
-}
-
-main();
-
-setInterval(callService, 10 * 60 * 1000);
-
+setInterval(keepAlive, 10 * 60 * 1000);
 setInterval(main, 5 * 60 * 1000);
-
-
