@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
-import { writeFile, readFile } from 'fs/promises';
 import http from 'http';
+import 'dotenv/config';
+import {readFile, writeFile} from 'fs/promises'
 
 const server = http.createServer();
 server.listen(process.env.PORT);
@@ -9,75 +10,166 @@ async function main() {
     try {
         console.log('Checking for power outages updates');
 
-        const response = await fetch('https://www.dtek-kem.com.ua/ua/ajax', {
-            method: 'POST',
-            headers: {
-                'accept': 'application/json, text/javascript, */*; q=0.01',
-                'accept-language': 'en-US,en;q=0.9,ru;q=0.8,uk;q=0.7',
-                'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'origin': 'https://www.dtek-kem.com.ua',
-                'priority': 'u=1, i',
-                'referer': 'https://www.dtek-kem.com.ua/ua/shutdowns',
-                'sec-ch-ua': '"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"macOS"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
-                'x-csrf-token': 'MZXb9QwxK6bxvsHFIYFJ-2CglaRTIK6_RuT-CZULQeBp47qaVkNF9aX5lJZrszyrDNLW7CMW4-wOsJ0k5kUM0Q==',
-                'x-requested-with': 'XMLHttpRequest',
-                'cookie': 'Domain=dtek-kem.com.ua; _language=1f011804d107a9f0f6fa36417ed49140e5bc2106c740e65666f3a94e857201cca%3A2%3A%7Bi%3A0%3Bs%3A9%3A%22_language%22%3Bi%3A1%3Bs%3A2%3A%22uk%22%3B%7D; visid_incap_2224657=Ya6n+aS6SO+z8QHfs3enc4vSUGkAAAAAQUIPAAAAAACaHlD+/e4pZPbSaKZoCRjU; _hjSessionUser_5026684=eyJpZCI6IjU1N2ZlMjc0LTZlODktNWIyMS04NjFlLThhMDEzNDNkZTkzOCIsImNyZWF0ZWQiOjE3NjY5MDQ0NjI3MzEsImV4aXN0aW5nIjp0cnVlfQ==; Domain=dtek-kem.com.ua; incap_ses_687_2224657=hT9TAW88BCbwCBdlTreICSXCX2kAAAAAg8/7ttEKkj4/GC7kwRAbYA==; _csrf-dtek-kem=f65c52b7ba76c7961f997a677b35ab3ec68d8e03e0eeb0190910ef437fd5ddd2a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-dtek-kem%22%3Bi%3A1%3Bs%3A32%3A%22XvaoZrnSTGUSJ2uPlrCHp6MSHTc-sNM1%22%3B%7D; _gid=GA1.3.481720410.1767883305; _hjSession_5026684=eyJpZCI6IjQ4NWJmZDgxLTcwZDUtNGM2OS1hNmZmLWRjMWEzMjU3MDExNCIsImMiOjE3Njc4ODMzMDQ3MDksInMiOjAsInIiOjAsInNiIjowLCJzciI6MCwic2UiOjAsImZzIjowLCJzcCI6MH0=; _ga_DLFSTRRPM2=GS2.1.s1767883304$o2$g1$t1767883384$j59$l0$h0; _ga=GA1.3.1760325505.1766904461; dtek-kem=scmqb64i3bbp6n55ctog7oaegb; incap_wrt_373=PdRfaQAAAABujiIiGgAI9QIQtvT94I4CGOmq/8oGIAIoiaf/ygYwAYpPkG9N1LoQS53BHMKacrI='
+        const response = await fetch("https://www.dtek-kem.com.ua/ua/shutdowns", {
+            "headers": {
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "accept-language": "en-US,en;q=0.9,ru;q=0.8,uk;q=0.7",
+                "cache-control": "max-age=0",
+                "priority": "u=0, i",
+                "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"macOS\"",
+                "sec-fetch-dest": "document",
+                "sec-fetch-mode": "navigate",
+                "sec-fetch-site": "same-origin",
+                "sec-fetch-user": "?1",
+                "upgrade-insecure-requests": "1",
+                "cookie": "Domain=dtek-kem.com.ua; _language=1f011804d107a9f0f6fa36417ed49140e5bc2106c740e65666f3a94e857201cca%3A2%3A%7Bi%3A0%3Bs%3A9%3A%22_language%22%3Bi%3A1%3Bs%3A2%3A%22uk%22%3B%7D; _hjSessionUser_5026684=eyJpZCI6IjU1N2ZlMjc0LTZlODktNWIyMS04NjFlLThhMDEzNDNkZTkzOCIsImNyZWF0ZWQiOjE3NjY5MDQ0NjI3MzEsImV4aXN0aW5nIjp0cnVlfQ==; _csrf-dtek-kem=d54bb3b6f857ed1df34d5c45ae13758da4b3842b8d20ad9c9482e78c665be0f7a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-dtek-kem%22%3Bi%3A1%3Bs%3A32%3A%22leIVLa3Egt5pbjcxWdFBoz8b78JgKDqR%22%3B%7D; _gid=GA1.3.1659978059.1768038404; Domain=dtek-kem.com.ua; visid_incap_2224657=Ya6n+aS6SO+z8QHfs3enc4vSUGkAAAAAQkIPAAAAAACAB6PBAbAkS+bzHG8ys7thQz9oOiJ3q5aR; dtek-kem=qb6jrp68g0vvnr5fu0g2uipu71; incap_ses_687_2224657=yKLkQBk9pHRWXvJnTreICVarYmkAAAAARCGGpquJb4Ed7COkx/XtNA==; _hjSession_5026684=eyJpZCI6ImU2OTEwZjkwLWY0MjctNGMwOC05MDBmLTFmMDY5NDRlMWJkMSIsImMiOjE3NjgwNzQ2MTM4MDksInMiOjAsInIiOjAsInNiIjowLCJzciI6MCwic2UiOjAsImZzIjowLCJzcCI6MH0=; _ga_DLFSTRRPM2=GS2.1.s1768074611$o8$g1$t1768074760$j58$l0$h0; _ga=GA1.3.1760325505.1766904461; incap_wrt_373=B69iaQAAAADRUl4DGgAI9QIQjOCHiJACGLPgissGIAIogtmKywYwAV18CF0DC1IBheujX2eZutk=",
+                "Referer": "https://www.dtek-kem.com.ua/ua/shutdowns"
             },
-            body: new URLSearchParams({
-                'method': 'getHomeNum',
-                'data[0][name]': 'street',
-                'data[0][value]': 'вул. Клавдіївська',
-                'data[1][name]': 'house_num',
-                'data[1][value]': '',
-                'data[2][name]': 'updateFact',
-                'data[2][value]': '08.01.2026 16:24'
-            })
+            "body": null,
+            "method": "GET"
         });
 
-        const {data} = await response.json();
-        const filename = "schedule.json";
-        const homeData = data['23/15'];
-        const powerOutagePeriod = {
-            start_date: homeData.start_date,
-            end_date: homeData.end_date
-        }
-        const message = `${powerOutagePeriod.start_date} - ${powerOutagePeriod.end_date}`;
+        const html = await response.text();
+
+        const startStr = 'DisconSchedule.fact = ';
+
+        const start = html.indexOf(startStr) + startStr.length;
+        const end = html.indexOf(",\"update\"", start);
+
+        const result = html.substring(start, end).trim() + '}';
+
+        const parsed = JSON.parse(result);
+
+        let message = '';
+
+        const currentSchedule = {};
+        let storedSchedule = null;
 
         try {
-            const json = await readFile(`./${filename}`, 'utf8');
-            const parsed = JSON.parse(json);
+            const file = await readFile('schedule.json', 'utf-8');
+            storedSchedule = JSON.parse(file);
+        } catch {
 
-            if (parsed.start_date !== homeData.start_date || parsed.end_date !== homeData.end_date) {
-                await writeFile(`./${filename}`, JSON.stringify(powerOutagePeriod));
-
-                try {
-                    await sendNotification(message);
-                }
-                catch (e) {
-                    console.error(e);
-                }
-            }
-            else {
-                console.log("No updates detected")
-            }
         }
-        catch (e) {
-            console.error(e);
 
-            console.log("Creating schedule.json file");
-            await writeFile(`./${filename}`, JSON.stringify(powerOutagePeriod));
+        Object.keys(parsed.data).forEach(((dateTimestamp, i) => {
+            currentSchedule[dateTimestamp] = '';
 
-            try {
-                await sendNotification(message);
+            const date = new Date(Number(dateTimestamp) * 1000);
+
+            const uaDate = new Intl.DateTimeFormat('uk-UA', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            }).format(date);
+
+            if (i > 0) {
+                message += '\n\n';
             }
-            catch (e) {
-                console.error(e);
+
+            message += uaDate;
+
+            const myGroupShutdowns = parsed.data[dateTimestamp]["GPV6.2"];
+
+            let assigningNewPeriod = false;
+            let isStartOfPeriodInitialized = false;
+            let currentPeriod = '';
+
+            const hours = Object.keys(myGroupShutdowns);
+
+            hours.forEach((hour, i) => {
+                currentSchedule[dateTimestamp] = [];
+
+                if (myGroupShutdowns[hour] === "no" || myGroupShutdowns[hour] === "second" || myGroupShutdowns[hour] === "first") {
+                    if (!assigningNewPeriod) {
+                        assigningNewPeriod = true;
+                        message += '\n';
+                    }
+
+                    if (!isStartOfPeriodInitialized) {
+                        isStartOfPeriodInitialized = true;
+
+                        if (myGroupShutdowns[hour] === "second") {
+                            currentPeriod = `${hour - 1}:30-`;
+                            message += `${hour - 1}:30-`;
+                        } else if (myGroupShutdowns[hour] === "first") {
+                            currentPeriod = `${hour - 1}:30-`;
+                            message += `${hour - 1}:30-`;
+                        } else {
+                            currentPeriod = `${hour - 1}-`;
+                            message += `${hour - 1}-`;
+                        }
+
+                        if (!hours[i + 1] || myGroupShutdowns[hours[i + 1]] === "yes") {
+                            if (myGroupShutdowns[hour] === "second") {
+                                message += `${hour - 1}:30`;
+                                currentPeriod += `${hour - 1}:30`;
+                            } else if (myGroupShutdowns[hour] === "first") {
+                                message += `${hour - 1}:30`;
+                                currentPeriod += `${hour - 1}:30`;
+                            } else {
+                                message += hour;
+                                currentPeriod += hour;
+                            }
+
+                            currentSchedule[dateTimestamp].push(currentPeriod);
+
+                            assigningNewPeriod = false;
+                            isStartOfPeriodInitialized = false;
+                            currentPeriod = '';
+                        }
+                    } else if (!hours[i + 1] || myGroupShutdowns[hours[i + 1]] === "yes") {
+                        if (myGroupShutdowns[hour] === "second") {
+                            message += `${hour - 1}:30`;
+                            currentPeriod += `${hour - 1}:30`;
+                        } else if (myGroupShutdowns[hour] === "first") {
+                            message += `${hour - 1}:30`;
+                            currentPeriod += `${hour - 1}:30`;
+                        } else {
+                            message += hour;
+                            currentPeriod += hour;
+                        }
+
+                        currentSchedule[dateTimestamp].push(currentPeriod);
+
+                        assigningNewPeriod = false;
+                        isStartOfPeriodInitialized = false;
+                        currentPeriod = '';
+                    }
+                } else {
+                    assigningNewPeriod = false;
+                    isStartOfPeriodInitialized = false;
+                    currentPeriod = '';
+                }
+            })
+        }));
+
+        if (!storedSchedule) {
+            await writeFile('schedule.json', JSON.stringify(currentSchedule));
+            await sendNotification(message);
+        } else {
+            let somethingChanged = false;
+
+            Object.keys(storedSchedule).forEach((dateTimestamp) => {
+                if (somethingChanged) {
+                    return;
+                }
+
+                storedSchedule[dateTimestamp].forEach(period => {
+                    if (somethingChanged) {
+                        return;
+                    }
+
+                    somethingChanged = !currentSchedule[dateTimestamp].includes(period);
+                })
+            });
+
+            if (somethingChanged) {
+                await sendNotification(message);
+            } else {
+                console.log("No changes detected");
             }
         }
     } catch (err) {
@@ -88,8 +180,8 @@ async function main() {
 const sendNotification = async (message) => {
     await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: "332433737", text: message })
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({chat_id: "332433737", text: message})
     });
 
     console.log(`Sent notification on ${new Date().toISOString()}`)
