@@ -13,7 +13,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200);
     res.end('Monitoring bot is alive');
 });
-server.listen(process.env.PORT);
+server.listen(process.env.PORT || 4000);
 
 async function getCurrentSchedule() {
     const browser = await puppeteer.launch({
