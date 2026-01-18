@@ -1,0 +1,93 @@
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import http from 'http';
+import 'dotenv/config';
+import parseScheduleFromHtml from "./src/parseScheduleFromHtml";
+import getShutdownsPageRawHtml from "./src/getShutdownsPageRawHtml";
+import getJsonDataFromTextMessage from "./src/getJsonDataFromTextMessage";
+import getMessageAndNewScheduleFromTable from "./src/getMessageAndNewScheduleFromTable";
+import sendTelegramNotification from "./src/sendTelegramNotification";
+import {HousePowerOutageDatesAndReasonOnly, PowerOutagePerHouseData, Schedule} from "./src/interfaces";
+
+puppeteer.use(StealthPlugin());
+
+const GROUP = 'GPV6.2';
+
+const server = http.createServer();
+
+server.listen(process.env.PORT || 3000);
+
+let currentScheduleFromMessage: HousePowerOutageDatesAndReasonOnly | null = null;
+let currentScheduleFromTable: Schedule | null = null;
+
+async function main(): Promise<void> {
+    console.log('Checking power outages...');
+
+    try {
+        const html = await getShutdownsPageRawHtml();
+        const parsed = await parseScheduleFromHtml(html);
+
+        let {message, newSchedule} = getMessageAndNewScheduleFromTable(parsed, GROUP);
+
+        let shouldNotify = !currentScheduleFromTable;
+
+        if (currentScheduleFromTable) {
+            shouldNotify = JSON.stringify(currentScheduleFromTable) !== JSON.stringify(newSchedule);
+
+            if (shouldNotify) {
+                currentScheduleFromTable = newSchedule;
+            } else {
+                message = '';
+            }
+        } else {
+            currentScheduleFromTable = newSchedule;
+            shouldNotify = true;
+        }
+
+        const housesPowerOutage: PowerOutagePerHouseData = await getJsonDataFromTextMessage();
+
+        const myHouseData = housesPowerOutage.data["23/15"];
+
+        const datesAndReason: HousePowerOutageDatesAndReasonOnly  = {
+            sub_type: myHouseData.sub_type,
+            start_date: myHouseData.start_date,
+            end_date: myHouseData.end_date
+        } as const;
+
+        const additionalMessage = `\n\nИз сообщения:\n${myHouseData.sub_type}\n${datesAndReason.start_date} - ${datesAndReason.end_date}`;
+
+        if (currentScheduleFromMessage) {
+            if (currentScheduleFromMessage.end_date !== datesAndReason.end_date || currentScheduleFromMessage.start_date !== datesAndReason.start_date) {
+                currentScheduleFromMessage = datesAndReason;
+                message += `\n${additionalMessage}`;
+                shouldNotify = true;
+            }
+        } else {
+            currentScheduleFromMessage = datesAndReason;
+            message += additionalMessage;
+            shouldNotify = true;
+        }
+
+        if (shouldNotify) {
+            console.log('Sending notification');
+
+            if (message.trim()) {
+                await sendTelegramNotification(message);
+            }
+        } else {
+            console.log('No changes in schedule');
+        }
+    } catch (err) {
+        console.error('Main error:', err);
+    }
+}
+
+const keepAlive = () => {
+    fetch('https://power-outage-notifier-976l.onrender.com')
+        .catch((err) => console.error(err));
+};
+
+main();
+
+setInterval(keepAlive, 10 * 60 * 1000);
+setInterval(main, 5 * 60 * 1000);
