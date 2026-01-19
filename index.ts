@@ -25,7 +25,7 @@ async function main(): Promise<void> {
 
     try {
         let finalMessage = '';
-        let shouldNotify = !currentScheduleFromTable;
+        let shouldNotify = !currentScheduleFromTable && !currentScheduleFromMessage;
 
         try {
             const html = await getShutdownsPageRawHtml();
