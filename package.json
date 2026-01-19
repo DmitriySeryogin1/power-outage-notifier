@@ -7,7 +7,7 @@
   "main": "index.ts",
   "scripts": {
     "build": "esbuild index.ts --bundle --platform=node --target=node18 --external:puppeteer --external:puppeteer-extra --external:puppeteer-extra-plugin-stealth --outfile=dist/index.js",
-    "prod": "npm run build && node dist/index.js",
+    "prod": "npx puppeteer browsers install chrome && npm run build && node dist/index.js",
     "dev": "ts-node index.ts"
   },
   "dependencies": {
