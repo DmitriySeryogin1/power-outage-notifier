@@ -23,6 +23,8 @@ export default async function getShutdownsPageRawHtml(): Promise<string> {
         await page.goto(URL);
 
         return await page.content();
+    } catch (error) {
+        throw error;
     } finally {
         await browser.close();
     }

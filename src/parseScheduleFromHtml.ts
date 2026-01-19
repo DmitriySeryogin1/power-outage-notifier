@@ -1,6 +1,6 @@
 import {ParsedSchedule} from "./interfaces";
 
-export default async function parseScheduleFromHtml(html: string): Promise<ParsedSchedule> {
+export default function parseScheduleFromHtml(html: string): ParsedSchedule {
     const startStr = 'DisconSchedule.fact = ';
     const startStrIndex = html.indexOf(startStr);
     if (startStrIndex === -1) {

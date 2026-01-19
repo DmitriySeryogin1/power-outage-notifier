@@ -24,55 +24,64 @@ async function main(): Promise<void> {
     console.log('Checking power outages...');
 
     try {
-        const html = await getShutdownsPageRawHtml();
-        const parsed = await parseScheduleFromHtml(html);
-
-        let {message, newSchedule} = getMessageAndNewScheduleFromTable(parsed, GROUP);
-
+        let finalMessage = '';
         let shouldNotify = !currentScheduleFromTable;
 
-        if (currentScheduleFromTable) {
-            shouldNotify = JSON.stringify(currentScheduleFromTable) !== JSON.stringify(newSchedule);
+        try {
+            const html = await getShutdownsPageRawHtml();
+            const parsedSchedule = parseScheduleFromHtml(html);
 
-            if (shouldNotify) {
-                currentScheduleFromTable = newSchedule;
+            let {message, newSchedule} = getMessageAndNewScheduleFromTable(parsedSchedule, GROUP);
+
+            if (currentScheduleFromTable) {
+                shouldNotify = JSON.stringify(currentScheduleFromTable) !== JSON.stringify(newSchedule);
+
+                if (shouldNotify) {
+                    currentScheduleFromTable = newSchedule;
+                    finalMessage += message;
+                }
             } else {
-                message = '';
-            }
-        } else {
-            currentScheduleFromTable = newSchedule;
-            shouldNotify = true;
-        }
-
-        const housesPowerOutage: PowerOutagePerHouseData = await getJsonDataFromTextMessage();
-
-        const myHouseData = housesPowerOutage.data["23/15"];
-
-        const datesAndReason: HousePowerOutageDatesAndReasonOnly  = {
-            sub_type: myHouseData.sub_type,
-            start_date: myHouseData.start_date,
-            end_date: myHouseData.end_date
-        } as const;
-
-        const additionalMessage = `\n\nИз сообщения:\n${myHouseData.sub_type}\n${datesAndReason.start_date} - ${datesAndReason.end_date}`;
-
-        if (currentScheduleFromMessage) {
-            if (currentScheduleFromMessage.end_date !== datesAndReason.end_date || currentScheduleFromMessage.start_date !== datesAndReason.start_date) {
-                currentScheduleFromMessage = datesAndReason;
-                message += `\n${additionalMessage}`;
+                currentScheduleFromTable = newSchedule;
+                finalMessage += message;
                 shouldNotify = true;
             }
-        } else {
-            currentScheduleFromMessage = datesAndReason;
-            message += additionalMessage;
-            shouldNotify = true;
+        } catch (err) {
+            console.error("Error while parsing data from table: " + err);
+        }
+
+        try {
+            const housesPowerOutage: PowerOutagePerHouseData = await getJsonDataFromTextMessage();
+
+            const myHouseData = housesPowerOutage.data["23/15"];
+
+            const datesAndReason: HousePowerOutageDatesAndReasonOnly = {
+                sub_type: myHouseData.sub_type,
+                start_date: myHouseData.start_date,
+                end_date: myHouseData.end_date
+            } as const;
+
+            const additionalMessage = `\n\nИз сообщения:\n${myHouseData.sub_type}\n${datesAndReason.start_date} - ${datesAndReason.end_date}`;
+
+            if (currentScheduleFromMessage) {
+                if (currentScheduleFromMessage.end_date !== datesAndReason.end_date || currentScheduleFromMessage.start_date !== datesAndReason.start_date) {
+                    currentScheduleFromMessage = datesAndReason;
+                    finalMessage += `\n${additionalMessage}`;
+                    shouldNotify = true;
+                }
+            } else {
+                currentScheduleFromMessage = datesAndReason;
+                finalMessage += additionalMessage;
+                shouldNotify = true;
+            }
+        } catch (err) {
+            console.error("Error while generating message from json: " + err);
         }
 
         if (shouldNotify) {
             console.log('Sending notification');
 
-            if (message.trim()) {
-                await sendTelegramNotification(message);
+            if (finalMessage.trim()) {
+                await sendTelegramNotification(finalMessage);
             }
         } else {
             console.log('No changes in schedule');
