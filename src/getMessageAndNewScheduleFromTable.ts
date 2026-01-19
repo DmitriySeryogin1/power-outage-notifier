@@ -92,8 +92,8 @@ const getStartOfPeriod = (hourStatus: HourStatus, hour: number): string => {
 
 const getEndOfPeriod = (hourStatus: HourStatus, hour: number): string => {
     if (hourStatus === HourStatus.second || hourStatus === HourStatus.first) {
-        return `${hour - 1}:30-`;
+        return `-${hour - 1}:30`;
     } else {
-        return `${hour - 1}-`;
+        return `-${hour - 1}`;
     }
 }
