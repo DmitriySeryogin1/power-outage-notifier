@@ -4,7 +4,17 @@ import {PowerOutagePerHouseData} from "./interfaces";
 export default async function getJsonDataFromTextMessage(): Promise<PowerOutagePerHouseData> {
     const URL = 'https://www.dtek-kem.com.ua/ua/shutdowns';
 
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process',
+            '--no-zygote',
+        ],
+    });
 
     const page = await browser.newPage();
 
