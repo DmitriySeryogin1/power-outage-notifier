@@ -20,7 +20,10 @@ export default async function getShutdownsPageRawHtml(): Promise<string> {
         const page: Page = await browser.newPage();
 
         console.log('Loading page...');
-        await page.goto(URL);
+        await page.goto(URL, {
+            waitUntil: 'networkidle2',
+            timeout: 60000
+        });
 
         return await page.content();
     } catch (error) {

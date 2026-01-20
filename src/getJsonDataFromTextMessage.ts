@@ -19,7 +19,10 @@ export default async function getJsonDataFromTextMessage(): Promise<PowerOutageP
     const page = await browser.newPage();
 
     console.log('Loading json data...');
-    const res = await page.goto(URL);
+    const res = await page.goto(URL, {
+        waitUntil: 'networkidle2',
+        timeout: 60000
+    });
 
     const requestHeaders = res!.request().headers();
     const csrfToken: string = await page.$eval('meta[name=csrf-token]', el => el.content);
