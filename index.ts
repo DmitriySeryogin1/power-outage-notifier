@@ -15,7 +15,7 @@ const GROUP = 'GPV6.2';
 
 const server = http.createServer();
 
-server.listen(process.env.PORT || 3000);
+server.listen(process.env.PORT || 3000, '0.0.0.0');
 
 let currentScheduleFromMessage: HousePowerOutageDatesAndReasonOnly | null = null;
 let currentScheduleFromTable: Schedule | null = null;

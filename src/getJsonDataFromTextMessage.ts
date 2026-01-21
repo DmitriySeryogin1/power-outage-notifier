@@ -13,7 +13,8 @@ export default async function getJsonDataFromTextMessage(): Promise<PowerOutageP
             '--disable-gpu',
             '--single-process',
             '--no-zygote',
-        ],
+        ], 
+        timeout: 0
     });
 
     const page = await browser.newPage();

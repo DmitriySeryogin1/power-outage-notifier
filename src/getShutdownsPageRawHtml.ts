@@ -14,6 +14,7 @@ export default async function getShutdownsPageRawHtml(): Promise<string> {
             '--single-process',
             '--no-zygote',
         ],
+        timeout: 0
     });
 
     try {
